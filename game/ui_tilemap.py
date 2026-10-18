@@ -1,9 +1,11 @@
 # game/ui_tilemap.py
+import os
+
 import pygame
 import settings as S
 from .node import NodeType
 from .items import format_bonuses
-from .forest_ui.map_renderer import render_grid, load_markers, RENDER_TILE_SIZE
+from .user_interface.map_renderer import render_grid, load_markers, RENDER_TILE_SIZE, load_player_sprite
 
 
 def draw_text(surf, s, x, y, font, color):
@@ -20,6 +22,7 @@ class UITilemap:
         self.BIG = pygame.font.SysFont(S.FONT_NAME, 26)
         self.TITLE = pygame.font.SysFont(S.FONT_NAME, 34)
         self.markers = load_markers()  # {'encounter':surf, 'shop':surf, 'boss':surf}
+        self.player_img = load_player_sprite()
 
         # état d’affichage du panneau de droite
         self.right_panel_visible = True
@@ -131,14 +134,15 @@ class UITilemap:
                 rect = icon.get_rect(center=(sx, sy - offset_y))
                 surf.blit(icon, rect.topleft)
 
-        # joueur (losange centré)
-        pygame.draw.polygon(
-            surf, S.HIGHLIGHT,
-            [(center_x, center_y - 10),
-             (center_x + 10, center_y),
-             (center_x, center_y + 10),
-             (center_x - 10, center_y)], width=3
-        )
+        # joueur : sprite centré sur la case du joueur
+        if hasattr(self, "player_img") and self.player_img:
+            rect = self.player_img.get_rect(center=(center_x, center_y))
+            self.screen.blit(self.player_img, rect.topleft)
+        else:
+            # Fallback si jamais indisponible (dev)
+            sz = RENDER_TILE_SIZE // 2
+            pygame.draw.rect(surf, S.HIGHLIGHT,
+                             (center_x - sz // 2, center_y - sz // 2, sz, sz), width=2)
 
         # panneaux
         self._draw_top_panel(gs)

@@ -17,3 +17,33 @@ venv/
 .DS_Store
 Thumbs.db
 "@ | Out-File -Encoding utf8 .gitignore
+
+# Local development state and credentials
+.idea/
+.vscode/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.hypothesis/
+build/
+dist/
+*.egg-info/
+.env
+.env.*
+!.env.example
+secrets/
+credentials.json
+keys.txt
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+local.properties
+*.log
+*.bak
+# Personal game progress (sample/default files stay versioned)
+save.json
+idle_save.json

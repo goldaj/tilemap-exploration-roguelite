@@ -2,6 +2,8 @@
 import random
 from typing import List, Tuple, Optional
 from .items import SHOP_POOL, ItemProto
+from .user_interface.ui_assets import blit_item_icon
+
 
 class ShopEntry:
     __slots__ = ("proto", "name", "desc", "cost", "_sold")

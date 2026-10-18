@@ -58,3 +58,8 @@ WORLD_SEED = "random"   # "random" | "daily" | int
 
 # Tous les X événements découverts, un boss apparaît
 BOSS_INTERVAL_NODES = 5
+
+# --- Player sprite ---
+PLAYER_TILE_RATIO = 0.6          # ~2/3 d'une tuile (modifie ici si besoin)
+PLAYER_TRIM_TRANSPARENT = True    # rogne les marges vides éventuelles du PNG
+
