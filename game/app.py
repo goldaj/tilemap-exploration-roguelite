@@ -2,6 +2,7 @@
 import pygame, sys
 import settings as S
 from .state import GameState
+from .combat_controls import available_actions, route_combat_click
 from .items import format_bonuses
 
 # sélection de l'UI
@@ -397,12 +398,13 @@ class App:
 
         # --- IN_COMBAT : toggles cliquables ---
         if st == "IN_COMBAT":
-            if H.get("combat_auto") and H["combat_auto"].collidepoint(x, y):
-                self.game.auto_play = not self.game.auto_play
-                return True
-            if H.get("combat_speed") and H["combat_speed"].collidepoint(x, y):
-                self.game.toggle_speed()
-                return True
+            for key in ("combat_auto", "combat_speed", "combat_attack",
+                        "combat_guard", "combat_power"):
+                rect = H.get(key)
+                if rect is not None and rect.collidepoint(x, y):
+                    route_combat_click(self.game, key)
+                    # Consume the hit on the overlay regardless of availability.
+                    return True
             return False
 
         # --- READY_COMBAT : cliquer sur l’overlay démarre le combat ---
@@ -617,7 +619,7 @@ class App:
         # Cadre & dimensions
         box_w = min(900, w - 80)
         base_panels_h = 96
-        instr_h = line_h + 4
+        instr_h = 2 * line_h + 28  # two distinct clickable control rows
         min_log_lines = 3
         content_min_h = pad + title_h + pad + base_panels_h + pad + min_log_lines * line_h + pad + instr_h + pad
         box_h = min(max(240, content_min_h), h - 80)
@@ -683,23 +685,42 @@ class App:
         for i, ln in enumerate(lines):
             draw_text(surf, ln, bx + pad, log_top + i * line_h, self.ui.FONT, S.WHITE)
 
-        # --- Instructions (fixées en bas, cliquables) ---
+        # --- Controls: mode button + distinct actual mouse actions ---
         instr_y = by + box_h - pad - instr_h
-
-        auto_txt = f"Auto: {'ON' if self.game.auto_play else 'OFF'}  |  Delay: {self.game.turn_delay:.2f}s"
+        auto_txt = f"Auto: {'ON' if self.game.auto_play else 'OFF'}  |  Espace: basculer"
         draw_text(surf, auto_txt, bx + pad, instr_y, self.ui.FONT, S.WHITE)
         aw, ah = self.ui.FONT.size(auto_txt)
         self.hot["combat_auto"] = pygame.Rect(bx + pad, instr_y, aw, ah)
-
+        self.hot["combat_speed"] = None
+        self.hot["combat_attack"] = None
+        self.hot["combat_guard"] = None
+        self.hot["combat_power"] = None
+        mouse = pygame.mouse.get_pos()
         if self.game.auto_play:
-            spd_txt = "ESPACE: mode manuel  |  F: vitesse"
+            speed = f"F: vitesse ({self.game.turn_delay:.2f}s)"
+            sw, sh = self.ui.FONT.size(speed)
+            sx = bx + box_w - pad - sw
+            draw_text(surf, speed, sx, instr_y, self.ui.FONT, S.WHITE)
+            self.hot["combat_speed"] = pygame.Rect(sx, instr_y, sw, sh)
         else:
-            spd_txt = (f"1 Attaquer  2 Garder  3 Puissance "
-                       f"({'prête' if cm.power_cooldown == 0 else str(cm.power_cooldown) + 't'})")
-        sw, sh = self.ui.FONT.size(spd_txt)
-        sx = bx + box_w - pad - sw
-        draw_text(surf, spd_txt, sx, instr_y, self.ui.FONT, S.WHITE)
-        self.hot["combat_speed"] = pygame.Rect(sx, instr_y, sw, sh)
+            states = available_actions(self.game)
+            actions = (
+                ("attack", "combat_attack", "1 Attaquer"),
+                ("guard", "combat_guard", "2 Garder (-2)"),
+                ("power", "combat_power",
+                 "3 Puissance" if cm.power_cooldown == 0 else f"3 Puissance ({cm.power_cooldown}t)"),
+            )
+            width = max(62, (box_w - 2 * pad - 16) // 3)
+            button_y = instr_y + line_h + 9
+            for index, (action, key, label) in enumerate(actions):
+                rect = pygame.Rect(bx + pad + index * (width + 8), button_y, width, line_h + 12)
+                if states[action]:
+                    self._draw_button(surf, rect, label, rect.collidepoint(mouse), font=self.ui.FONT)
+                    self.hot[key] = rect
+                else:
+                    # Explicitly disabled power action during its cooldown.
+                    pygame.draw.rect(surf, (38, 39, 44), rect, border_radius=6)
+                    draw_text(surf, label, rect.x + 6, rect.y + 4, self.ui.FONT, (120, 120, 125))
 
         # Message si fini
         if cm.finished:
