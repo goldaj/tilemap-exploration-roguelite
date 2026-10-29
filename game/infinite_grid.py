@@ -35,6 +35,8 @@ class InfiniteGrid:
       - Événements (ENCOUNTER/SHOP) posés sur certaines cases de chemin
     """
     def __init__(self, tile_size: int = 64, chunk_size: int = 24, world_seed: int = 1337):
+        if chunk_size < 6:
+            raise ValueError("chunk_size doit être >= 6 pour ménager les bordures")
         self.tile_size = tile_size
         self.chunk_size = chunk_size
         self.world_seed = int(world_seed)
@@ -131,51 +133,21 @@ class InfiniteGrid:
         # RNG déterministe par chunk
         rng = random.Random((self.world_seed * 73856093) ^ (cx * 19349663) ^ (cy * 83492791))
 
-        # ---------- 1) Portes aux bords (couture avec voisins si présents) ----------
-        portals = {"N": set(), "E": set(), "S": set(), "W": set()}
+        # ---------- 1) Portes indépendantes de l'ordre d'exploration ----------
+        # Une frontière possède une graine partagée entre ses deux chunks.
+        # Auparavant, l'héritage des voisins rendait le monde différent selon
+        # la direction dans laquelle le joueur explorait les zones.
+        def edge_portals(orientation: str, ex: int, ey: int) -> set[int]:
+            edge_rng = random.Random(f"{self.world_seed}:{orientation}:{ex}:{ey}")
+            count = 1 if edge_rng.random() < 0.7 else 2
+            return set(edge_rng.sample(range(2, N - 2), count))
 
-        def inherit_from_neighbor(ncx, ncy, side_from_neighbor, side_here):
-            nb = self.chunks.get((ncx, ncy))
-            if not nb: return
-            Nn = nb.size
-            if side_from_neighbor == "E":
-                for y in range(Nn):
-                    cell = nb.cells[y][Nn - 1]
-                    if cell and cell.get('E', False):
-                        portals[side_here].add(y)
-            elif side_from_neighbor == "W":
-                for y in range(Nn):
-                    cell = nb.cells[y][0]
-                    if cell and cell.get('W', False):
-                        portals[side_here].add(y)
-            elif side_from_neighbor == "S":
-                for x in range(Nn):
-                    cell = nb.cells[Nn - 1][x]
-                    if cell and cell.get('S', False):
-                        portals[side_here].add(x)
-            elif side_from_neighbor == "N":
-                for x in range(Nn):
-                    cell = nb.cells[0][x]
-                    if cell and cell.get('N', False):
-                        portals[side_here].add(x)
-
-        inherit_from_neighbor(cx, cy - 1, "S", "N")
-        inherit_from_neighbor(cx + 1, cy, "W", "E")
-        inherit_from_neighbor(cx, cy + 1, "N", "S")
-        inherit_from_neighbor(cx - 1, cy, "E", "W")
-
-        def ensure_min_portals():
-            for side in ("N", "E", "S", "W"):
-                if not portals[side]:
-                    count = 1 if rng.random() < 0.7 else 2
-                    if side in ("N", "S"):
-                        for _ in range(count):
-                            portals[side].add(rng.randrange(2, N - 2))
-                    else:
-                        for _ in range(count):
-                            portals[side].add(rng.randrange(2, N - 2))
-
-        ensure_min_portals()
+        portals = {
+            "N": edge_portals("horizontal", cx, cy - 1),
+            "S": edge_portals("horizontal", cx, cy),
+            "W": edge_portals("vertical", cx - 1, cy),
+            "E": edge_portals("vertical", cx, cy),
+        }
 
         # ---------- helpers de carving ----------
         def cell(x: int, y: int) -> Dict[str, bool]:
