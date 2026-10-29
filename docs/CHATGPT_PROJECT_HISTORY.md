@@ -15,3 +15,11 @@ Roguelite Python/Pygame, exploration de grille, rencontres, objets, combat et bo
 
 ## Limites
 Aucun AGENTS.md initial. Il manque encore les questions et réponses intégrales des anciennes séances ; aucun message de l'assistant n'est inventé. Compléter depuis les exports authentiques si disponibles, avec examen préalable des données sensibles avant toute publication. Ajouter ensuite des entrées horodatées `Utilisateur (verbatim)` / `Assistant (verbatim)` lorsque les textes exacts sont accessibles.
+
+## Intervention 2026-10-29 — combat manuel utilisable (résumé non verbatim)
+
+- L'utilisateur demande des développements fonctionnels continus dans différents dépôts, reprise des travaux inachevés, inspection des branches/PR et passation Codex. Aucun historique intégral nouveau n'a été récupéré.
+- Audit de `develop`, `chatgpt/review-20261024` et de la PR #1 ; branche séparée `feat/tactical-manual-combat-20261029`, sans réécriture de la PR #1.
+- Bug constaté : le mode auto OFF stoppait les tours sans proposer de décisions manuelles. Correction : actions 1 attaque, 2 garde, 3 puissance avec recharge 3 tours, Espace auto/manuel ; règles de dégâts cohérentes et logs dédupliqués.
+- Tests hors écran couvrant la simulation de tours et l'équilibrage de 20 graines en tout début de jeu ; intégration Pygame et campagne complète non validées. Workflow ajouté, statut CI à vérifier.
+- Voir `docs/MANUAL_TACTICAL_COMBAT.md` ; étape suivante : métriques de TTK et taux de victoire en multi-seed avant réglages des ennemis. Aucune donnée privée ni assets modifiés.
