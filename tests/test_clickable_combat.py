@@ -53,7 +53,7 @@ class ClickRoutingTests(unittest.TestCase):
         self.assertTrue(route_combat_click(state, "combat_power"))
         self.assertEqual(state.current_combat.turn_count, 3)
         self.assertEqual(state.current_combat.power_cooldown, 3)
-        self.assertEqual(state.current_combat.enemy.hp, 26)
+        self.assertEqual(state.current_combat.enemy.hp, 27)  # 1 normal + 2 power
 
     def test_power_is_disabled_during_recharge_without_spending_turn(self):
         state = FakeState()
