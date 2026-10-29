@@ -1,0 +1,23 @@
+name: Tactical combat offline tests
+on:
+  pull_request:
+  push:
+    branches: [develop, 'feat/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  core-combat:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Combat simulation and tactical turn tests
+        run: python -m unittest discover -s tests -p 'test_manual_combat.py' -v
+      - name: Compile integrated state and UI syntax without starting Pygame
+        run: python -m py_compile game/combat.py game/units.py game/state.py game/app.py

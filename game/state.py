@@ -601,7 +601,28 @@ class GameState:
 
     def toggle_auto(self):
         self.auto_play = not self.auto_play
+        self.time_since_last_turn = 0.0
         self.logs.append(f"Auto-play {'ON' if self.auto_play else 'OFF'}")
+
+    def _advance_combat(self, action: str) -> bool:
+        cm = self.current_combat
+        if self.state != "IN_COMBAT" or cm is None or cm.finished:
+            return False
+        before = len(cm.log)
+        accepted = cm.step_turn(action)
+        if not accepted:
+            if action == "power" and cm.power_cooldown:
+                self.logs.append(f"Frappe puissante : encore {cm.power_cooldown} tour(s) de recharge.")
+            return False
+        self.logs.extend(cm.log[before:])
+        if cm.finished:
+            self.finish_combat()
+        return True
+
+    def manual_combat_action(self, action: str) -> bool:
+        if self.auto_play:
+            return False
+        return self._advance_combat(action)
 
     # -------- update --------
     def update(self, dt: float):
@@ -671,9 +692,4 @@ class GameState:
                 self.time_since_last_turn += dt
                 if self.time_since_last_turn >= self.turn_delay:
                     self.time_since_last_turn = 0.0
-                    self.current_combat.step_turn()
-                    for ln in self.current_combat.log[-2:]:
-                        self.logs.append(ln)
-                    if self.current_combat.finished:
-                        for ln in self.current_combat.log[-3:]:
-                            self.logs.append(ln)
+                    self._advance_combat("attack")

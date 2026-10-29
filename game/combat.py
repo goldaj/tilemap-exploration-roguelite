@@ -10,6 +10,8 @@ class CombatManager:
         self.log: List[str] = []
         self.finished = False
         self.result: Optional[str] = None
+        self.power_cooldown = 0  # power unavailable for 3 subsequent turns
+        self._guard_this_turn = False
 
         # Sécurité : s’assurer que les deux ont les attributs de bouclier
         for u in (self.player, self.enemy):
@@ -29,9 +31,12 @@ class CombatManager:
             if gained > 0:
                 self.log.append(f"Début de combat : YOU récupère +{gained} PV.")
 
-    def _apply_damage(self, attacker: Unit, target: Unit) -> int:
-        """Applique les dégâts : d'abord le bouclier, puis les PV. Renvoie le total infligé."""
-        dmg = max(0, int(round(attacker.atk)))
+    def _apply_damage(self, attacker: Unit, target: Unit, bonus: int = 0) -> int:
+        """Defense and guard reduce damage before shield, then remaining HP."""
+        dmg = max(0, int(round(attacker.atk)) + bonus)
+        dmg = max(0, dmg - max(0, int(round(getattr(target, "defense", 0)))))
+        if target is self.player and self._guard_this_turn:
+            dmg = max(0, dmg - 2)
         total = 0
 
         # 1) bouclier
@@ -47,13 +52,29 @@ class CombatManager:
         if dmg > 0:
             before = int(target.hp)
             target.hp = max(0, target.hp - dmg)
+            if target.hp <= 0:
+                target.alive = False
             total += (before - int(target.hp))
 
         return total
 
-    def step_turn(self):
+    def step_turn(self, action: str = "attack"):
+        """Complete one turn with a chosen player tactic; default remains auto attack.
+
+        attack: regular hit; guard: skip hit, prevent up to two incoming damage;
+        power: +max(1, round(ATK/2)) damage, then wait 3 normal turns.
+        """
         if self.finished:
-            return
+            return False
+        if action not in ("attack", "guard", "power"):
+            return False
+        if action == "power" and self.power_cooldown > 0:
+            return False  # no turn consumed
+        if self.power_cooldown > 0:
+            self.power_cooldown -= 1
+        if action == "power":
+            self.power_cooldown = 3
+        self._guard_this_turn = action == "guard"
         self.turn_count += 1
 
         # Régénération par tour (joueur)
@@ -75,7 +96,14 @@ class CombatManager:
             if who == "player":
                 if not getattr(self.player, "alive", True) or self.player.hp <= 0:
                     continue
-                dealt = self._apply_damage(self.player, self.enemy)
+                if action == "guard":
+                    dealt = 0
+                    self.log.append(f"Tour {self.turn_count}: PLAYER se protège (-2 dégâts ennemis).")
+                else:
+                    bonus = max(1, int(round(self.player.atk / 2))) if action == "power" else 0
+                    dealt = self._apply_damage(self.player, self.enemy, bonus=bonus)
+                    if action == "power":
+                        self.log.append(f"Tour {self.turn_count}: FRAPPE PUISSANTE (+{bonus}).")
                 self.log.append(
                     f"Tour {self.turn_count}: PLAYER inflige {dealt}  "
                     f"(EN HP {int(self.enemy.hp)}/{int(self.enemy.max_hp)} | "
@@ -83,7 +111,7 @@ class CombatManager:
                 )
                 # Vol de vie / soin à l'impact
                 onhit = int(getattr(self.player, 'heal_on_hit', 0))
-                if onhit > 0 and dealt > 0 and getattr(self.player, 'hp', 0) > 0:
+                if action != "guard" and onhit > 0 and dealt > 0 and getattr(self.player, 'hp', 0) > 0:
                     before = int(self.player.hp)
                     self.player.hp = min(self.player.max_hp, self.player.hp + onhit)
                     gained = int(self.player.hp) - before
@@ -109,3 +137,5 @@ class CombatManager:
                 self.result = "LOSE"
                 self.log.append("TU ES MORT.")
                 break
+        self._guard_this_turn = False
+        return True

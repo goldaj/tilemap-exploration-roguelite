@@ -28,3 +28,11 @@ Aucun AGENTS.md initial. Il manque encore les questions et réponses intégrales
 **Assistant (résumé reconstruit, non verbatim)** : revue des gros dépôts et amélioration isolée sur `chatgpt/review-20261024`. GridMapper : gestion de carte vide après reset et taille de tuile invalide ; nouveaux tests de corridors, CI dédiée.
 
 **Validation et confiance** : confiance élevée sur la portée du changement ; aucune exécution locale des tests ne peut être attestée depuis l'accès GitHub disponible. Consulter les statuts GitHub Actions de la PR avant intégration. Aucune modification de `main`/`develop`, aucun déploiement. Codex doit inspecter le diff, relancer les tests et choisir les commits à intégrer sans écraser son travail.
+
+## Intervention 2026-10-29 — combat manuel utilisable (résumé non verbatim)
+
+- L'utilisateur demande des développements fonctionnels continus dans différents dépôts, reprise des travaux inachevés, inspection des branches/PR et passation Codex. Aucun historique intégral nouveau n'a été récupéré.
+- Audit de `develop`, `chatgpt/review-20261024` et de la PR #1 ; branche séparée `feat/tactical-manual-combat-20261029`, sans réécriture de la PR #1.
+- Bug constaté : le mode auto OFF stoppait les tours sans proposer de décisions manuelles. Correction : actions 1 attaque, 2 garde, 3 puissance avec recharge 3 tours, Espace auto/manuel ; règles de dégâts cohérentes et logs dédupliqués.
+- Tests hors écran couvrant la simulation de tours et l'équilibrage de 20 graines en tout début de jeu ; intégration Pygame et campagne complète non validées. Workflow ajouté, statut CI à vérifier.
+- Voir `docs/MANUAL_TACTICAL_COMBAT.md` ; étape suivante : métriques de TTK et taux de victoire en multi-seed avant réglages des ennemis. Aucune donnée privée ni assets modifiés.
