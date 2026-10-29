@@ -14,6 +14,8 @@ class GridMapper:
       - node_at(gx,gy) : id du node présent sur cette cell (ou None)
     """
     def __init__(self, tile_size: int = 64):
+        if tile_size <= 0:
+            raise ValueError("tile_size must be positive")
         self.tile = tile_size
         self.pos_by_id: Dict[int, Tuple[int,int]] = {}
         self.min_gx = self.min_gy = 0
@@ -88,6 +90,13 @@ class GridMapper:
     def rebuild(self, gmap: MapGraph):
         used=set()
         self.pos_by_id.clear()
+        if not gmap.nodes:
+            self.min_gx = self.min_gy = 0
+            self.max_gx = self.max_gy = 0
+            self.cols = self.rows = 0
+            self.grid = []
+            self._grid_to_node.clear()
+            return
         # 1) places
         for nid, node in gmap.nodes.items():
             gx, gy = self._world_to_grid_guess(node.x, node.y)
