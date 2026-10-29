@@ -123,6 +123,24 @@ class App:
                             self.game.exit_chest()
                         continue
 
+                    # Combat: SPACE toggles auto/manual. In manual mode each key
+                    # advances exactly one full turn; no continuous key repeat.
+                    if self.game.state == "IN_COMBAT":
+                        if ev.key == pygame.K_SPACE:
+                            self.game.toggle_auto()
+                        elif ev.key in (pygame.K_1, pygame.K_KP1):
+                            self.game.manual_combat_action("attack")
+                        elif ev.key in (pygame.K_2, pygame.K_KP2):
+                            self.game.manual_combat_action("guard")
+                        elif ev.key in (pygame.K_3, pygame.K_KP3):
+                            self.game.manual_combat_action("power")
+                        elif ev.key == pygame.K_f:
+                            self.game.fast = not getattr(self.game, "fast", False)
+                            self.game.turn_delay = S.FAST_TURN if self.game.fast else S.SLOW_TURN
+                        elif ev.key == pygame.K_ESCAPE:
+                            running = False
+                        continue
+
                     # déplacement smooth par demande (avec enchaînement)
                     if ev.key in (pygame.K_UP, pygame.K_w):
                         self.game.request_move("up")
@@ -673,7 +691,11 @@ class App:
         aw, ah = self.ui.FONT.size(auto_txt)
         self.hot["combat_auto"] = pygame.Rect(bx + pad, instr_y, aw, ah)
 
-        spd_txt = "SPACE: pause/reprend  •  F: vitesse"
+        if self.game.auto_play:
+            spd_txt = "ESPACE: mode manuel  |  F: vitesse"
+        else:
+            spd_txt = (f"1 Attaquer  2 Garder  3 Puissance "
+                       f"({'prête' if cm.power_cooldown == 0 else str(cm.power_cooldown) + 't'})")
         sw, sh = self.ui.FONT.size(spd_txt)
         sx = bx + box_w - pad - sw
         draw_text(surf, spd_txt, sx, instr_y, self.ui.FONT, S.WHITE)
